@@ -16,6 +16,11 @@ def setup_mock_env():
             # Create a mock exe
             with open(os.path.join(path, f"{p}.exe"), "w") as f:
                 f.write("mock")
+
+            if p == "Osi":
+                with open(os.path.join(path, "Version.txt"), "w") as f:
+                    f.write("03.06.48.00")
+
             print(f" - {p} erstellt.")
         else:
             print(f" - {p} existiert bereits.")

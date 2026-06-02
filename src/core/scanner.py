@@ -47,6 +47,15 @@ class BiesseScanner:
 
     def _get_version(self, folder, exe_name):
         """Try to extract version info from exe or config files."""
+        # Special check for OSI version files
+        version_file = os.path.join(folder, "Version.txt")
+        if os.path.exists(version_file):
+            try:
+                with open(version_file, "r") as f:
+                    return f.read().strip()
+            except Exception:
+                pass
+
         exe_path = os.path.join(folder, exe_name)
         if not os.path.exists(exe_path):
             return "Nicht gefunden"
@@ -59,9 +68,20 @@ class BiesseScanner:
                 version = f"{win32api.HIWORD(ms)}.{win32api.LOWORD(ms)}.{win32api.HIWORD(ls)}.{win32api.LOWORD(ls)}"
                 return version
             except Exception as e:
-                logging.error(f"Fehler beim Lesen der Version von {exe_name}: {e}")
+                logging.debug(f"Fehler beim Lesen der EXE Version von {exe_name}: {e}")
 
-        return "Version erkannt (Details nur auf Windows)"
+        # Fallback: check any .ini or .xml for version strings
+        for f in os.listdir(folder):
+            if f.lower().endswith(".ini"):
+                try:
+                    with open(os.path.join(folder, f), "r", errors="ignore") as file:
+                        content = file.read()
+                        if "Version=" in content:
+                            return content.split("Version=")[1].split("\n")[0].strip()
+                except Exception:
+                    continue
+
+        return "Erkannt"
 
     @staticmethod
     def get_pc_name():
