@@ -106,16 +106,36 @@ class App(ctk.CTk):
 
     def run_scan(self):
         self.scan_button.configure(state="disabled")
+        # Clear status text before new scan
+        self.status_text.delete("1.0", "end")
         self.log("Starte Software-Scan...")
 
         def _scan():
             results = self.scanner.scan()
+            self.after(0, self.update_program_selection, results)
             for name, info in results.items():
-                status = f"Gefunden (v{info['version']})" if info["installed"] else "Nicht installiert"
+                if info["installed"]:
+                    status = f"Gefunden in '{info['folder_name']}' (v{info['version']})"
+                else:
+                    status = "Nicht installiert"
                 self.after(0, self.log, f"{name}: {status}")
             self.after(0, lambda: self.scan_button.configure(state="normal"))
 
         threading.Thread(target=_scan, daemon=True).start()
+
+    def update_program_selection(self, scan_results):
+        """Updates the checkboxes based on scan results."""
+        for name, var in self.program_vars.items():
+            installed = scan_results.get(name, {}).get("installed", False)
+            # Find the checkbox widget for this program
+            for child in self.main_frame.winfo_children():
+                if isinstance(child, ctk.CTkCheckBox) and child.cget("text") == name:
+                    if installed:
+                        child.configure(state="normal")
+                        var.set(True)
+                    else:
+                        child.configure(state="disabled")
+                        var.set(False)
 
     def run_manual_backup(self):
         self.manual_backup_button.configure(state="disabled")
