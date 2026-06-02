@@ -11,7 +11,23 @@ Der **Handl Biesse Backup Manager** ist ein spezialisiertes Werkzeug für die Fi
 - **Benutzerfreundliche GUI:** Moderne Oberfläche entwickelt mit Python und CustomTkinter.
 
 ## Installation / Nutzung
-(Anleitung folgt, sobald die erste Version verfügbar ist)
+
+### Für Anwender (EXE)
+- Die `Handl_Biesse_Backup_Manager.exe` starten.
+- Es ist keine Installation von Python erforderlich.
+
+### Für Entwickler (Python Modus)
+1. Python 3.10 oder neuer installieren.
+2. Repository klonen oder Dateien kopieren.
+3. Anforderungen installieren:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Anwendung starten:
+   ```bash
+   python main.py
+   ```
+   *Unter Windows kann auch einfach die `dev_start.bat` doppelt angeklickt werden.*
 
 ## Entwickelt für
 - Windows 7, 10, 11

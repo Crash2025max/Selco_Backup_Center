@@ -59,6 +59,10 @@ class App(ctk.CTk):
         self.manual_path_entry.insert(0, self.config_manager.get("backup_paths")["manual"])
         ctk.CTkButton(self.manual_path_frame, text="...", width=30, command=lambda: self.browse_path("manual")).pack(side="left", padx=5)
 
+        self.debug_var = ctk.BooleanVar(value=False)
+        self.debug_cb = ctk.CTkCheckBox(self.main_frame, text="Debug-Modus (Ausführliches Logging)", variable=self.debug_var)
+        self.debug_cb.pack(pady=10, anchor="w")
+
         # Programs
         self.prog_label = ctk.CTkLabel(self.main_frame, text="Programme zum Sichern", font=ctk.CTkFont(weight="bold"))
         self.prog_label.pack(pady=(20, 5), anchor="w")
@@ -81,8 +85,11 @@ class App(ctk.CTk):
         self.status_text = ctk.CTkTextbox(self, height=150)
         self.status_text.grid(row=1, column=1, padx=20, pady=(0, 20), sticky="nsew")
 
-    def log(self, message):
-        self.status_text.insert("end", f"{message}\n")
+    def log(self, message, level="INFO"):
+        if level == "DEBUG" and not self.debug_var.get():
+            return
+        prefix = f"[{level}] " if self.debug_var.get() else ""
+        self.status_text.insert("end", f"{prefix}{message}\n")
         self.status_text.see("end")
 
     def browse_path(self, type_):
