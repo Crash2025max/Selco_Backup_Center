@@ -39,10 +39,6 @@ class BackupManager:
                         if self.target_base_path in os.path.abspath(root):
                             continue
 
-                        # Optimization: Skip OSI ARCHIVE folder
-                        if "Osi" in source_path and "ARCHIVE" in root:
-                            continue
-
                         for file in files:
                             file_path = os.path.join(root, file)
                             arcname = os.path.relpath(file_path, source_path)

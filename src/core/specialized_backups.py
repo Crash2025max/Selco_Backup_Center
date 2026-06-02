@@ -26,9 +26,3 @@ def backup_osi(manager, source_path, program_name, is_auto):
     # In a real scenario, we would parse OSI's .ini files here
     # For now, we use the standard zip but it's prepared for specialization
     return manager.create_backup(source_path, program_name, is_auto)
-
-def backup_optiplanning(manager, source_path, program_name, is_auto):
-    """Detects database paths for Optiplanning and backs them up."""
-    # Look for .ini files in Optiplanning directory to find DB paths
-    # (Simplified for now)
-    return manager.create_backup(source_path, program_name, is_auto)

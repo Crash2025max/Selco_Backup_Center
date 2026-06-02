@@ -1,11 +1,9 @@
 import customtkinter as ctk
 import os
-import threading
 from tkinter import filedialog, messagebox
 from src.core.scanner import BiesseScanner
 from src.core.config import ConfigManager
 from src.core.backup import BackupManager
-from src.core.specialized_backups import backup_bopti, backup_osi, backup_optiplanning
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
@@ -105,70 +103,33 @@ class App(ctk.CTk):
                 self.manual_path_entry.insert(0, path)
 
     def run_scan(self):
-        self.scan_button.configure(state="disabled")
-        # Clear status text before new scan
-        self.status_text.delete("1.0", "end")
         self.log("Starte Software-Scan...")
-
-        def _scan():
-            results = self.scanner.scan()
-            self.after(0, self.update_program_selection, results)
-            for name, info in results.items():
-                if info["installed"]:
-                    status = f"Gefunden in '{info['folder_name']}' (v{info['version']})"
-                else:
-                    status = "Nicht installiert"
-                self.after(0, self.log, f"{name}: {status}")
-            self.after(0, lambda: self.scan_button.configure(state="normal"))
-
-        threading.Thread(target=_scan, daemon=True).start()
-
-    def update_program_selection(self, scan_results):
-        """Updates the checkboxes based on scan results."""
-        for name, var in self.program_vars.items():
-            installed = scan_results.get(name, {}).get("installed", False)
-            # Find the checkbox widget for this program
-            for child in self.main_frame.winfo_children():
-                if isinstance(child, ctk.CTkCheckBox) and child.cget("text") == name:
-                    if installed:
-                        child.configure(state="normal")
-                        var.set(True)
-                    else:
-                        child.configure(state="disabled")
-                        var.set(False)
+        results = self.scanner.scan()
+        for name, info in results.items():
+            status = f"Gefunden (v{info['version']})" if info["installed"] else "Nicht installiert"
+            self.log(f"{name}: {status}")
 
     def run_manual_backup(self):
-        self.manual_backup_button.configure(state="disabled")
+        # Save current config first
         manual_path = self.manual_path_entry.get()
 
-        def _backup():
-            results = self.scanner.scan()
-            manager = BackupManager(manual_path)
+        results = self.scanner.scan()
+        manager = BackupManager(manual_path)
 
-            self.after(0, self.log, "Starte manuelles Backup...")
-            for name, var in self.program_vars.items():
-                if var.get() and results.get(name, {}).get("installed"):
-                    self.after(0, self.log, f"Sichere {name}...")
-
-                    # Choose backup function
-                    custom_func = None
-                    if name == "Bopti": custom_func = backup_bopti
-                    elif name == "OSI": custom_func = backup_osi
-                    elif name == "Optiplanning": custom_func = backup_optiplanning
-
-                    success, msg = manager.create_backup(results[name]["path"], name, is_auto=False, custom_func=custom_func)
-                    if success:
-                        if manager.verify_backup(msg):
-                            self.after(0, self.log, f"Erfolgreich & Verifiziert: {os.path.basename(msg)}")
-                        else:
-                            self.after(0, self.log, f"Erstellt, aber VERIFIKATION FEHLGESCHLAGEN: {os.path.basename(msg)}")
+        self.log("Starte manuelles Backup...")
+        for name, var in self.program_vars.items():
+            if var.get() and results.get(name, {}).get("installed"):
+                self.log(f"Sichere {name}...")
+                success, msg = manager.create_backup(results[name]["path"], name, is_auto=False)
+                if success:
+                    if manager.verify_backup(msg):
+                        self.log(f"Erfolgreich & Verifiziert: {os.path.basename(msg)}")
                     else:
-                        self.after(0, self.log, f"FEHLER bei {name}: {msg}")
+                        self.log(f"Erstellt, aber VERIFIKATION FEHLGESCHLAGEN: {os.path.basename(msg)}")
+                else:
+                    self.log(f"FEHLER bei {name}: {msg}")
 
-            self.after(0, lambda: self.manual_backup_button.configure(state="normal"))
-            self.after(0, lambda: messagebox.showinfo("Backup", "Manuelles Backup abgeschlossen!"))
-
-        threading.Thread(target=_backup, daemon=True).start()
+        messagebox.showinfo("Backup", "Manuelles Backup abgeschlossen!")
 
 if __name__ == "__main__":
     app = App()
