@@ -67,12 +67,10 @@ class App(ctk.CTk):
         self.prog_label = ctk.CTkLabel(self.main_frame, text="Programme zum Sichern", font=ctk.CTkFont(weight="bold"))
         self.prog_label.pack(pady=(20, 5), anchor="w")
 
+        self.program_checkboxes_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.program_checkboxes_frame.pack(fill="x")
+
         self.program_vars = {}
-        for prog in ["OSI", "Optiplanning", "Bopti", "LEdit", "LPrint"]:
-            var = ctk.BooleanVar(value=self.config_manager.get("programs", {}).get(prog, {}).get("enabled", True))
-            cb = ctk.CTkCheckBox(self.main_frame, text=prog, variable=var)
-            cb.pack(pady=2, anchor="w")
-            self.program_vars[prog] = var
 
         # Retention
         self.retention_label = ctk.CTkLabel(self.main_frame, text="Anzahl behaltener Auto-Backups", font=ctk.CTkFont(weight="bold"))
@@ -84,6 +82,9 @@ class App(ctk.CTk):
         # Status
         self.status_text = ctk.CTkTextbox(self, height=150)
         self.status_text.grid(row=1, column=1, padx=20, pady=(0, 20), sticky="nsew")
+
+        # Initial UI generation
+        self.update_program_checkboxes()
 
     def log(self, message, level="INFO"):
         if level == "DEBUG" and not self.debug_var.get():
@@ -102,12 +103,30 @@ class App(ctk.CTk):
                 self.manual_path_entry.delete(0, "end")
                 self.manual_path_entry.insert(0, path)
 
+    def update_program_checkboxes(self, scan_results=None):
+        if scan_results is None:
+            scan_results = self.scanner.scan()
+            
+        for widget in self.program_checkboxes_frame.winfo_children():
+            widget.destroy()
+            
+        self.program_vars = {}
+        for prog_name, info in scan_results.items():
+            if info["installed"]:
+                var = ctk.BooleanVar(value=self.config_manager.get("programs", {}).get(prog_name, {}).get("enabled", True))
+                display_name = info.get("name", prog_name)
+                cb = ctk.CTkCheckBox(self.program_checkboxes_frame, text=f"{display_name} (v{info['version']})", variable=var)
+                cb.pack(pady=2, anchor="w")
+                self.program_vars[prog_name] = var
+
     def run_scan(self):
         self.log("Starte Software-Scan...")
         results = self.scanner.scan()
+        self.update_program_checkboxes(results)
         for name, info in results.items():
             status = f"Gefunden (v{info['version']})" if info["installed"] else "Nicht installiert"
-            self.log(f"{name}: {status}")
+            display_name = info.get("name", name)
+            self.log(f"{display_name}: {status}")
 
     def run_manual_backup(self):
         # Save current config first
