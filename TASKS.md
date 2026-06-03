@@ -16,6 +16,7 @@ Diese Liste dokumentiert den Fortschritt des Projekts und geplante Erweiterungen
 
 ## Nächste Schritte (Beim nächsten Mal)
 - [ ] Kontrolle des OSI Backups und der dort verwendeten Pfade (Ist-Stand-Check).
+- [ ] Optiplanning Backup finalisieren (Pr�fen, ob die dynamischen Registry-Pfade und ZIP-Erstellung f�r dich so passen oder noch Feinschliff brauchen).
 - [ ] Handl Firmenlogo in die UI einpflegen.
 - [ ] UI-Anpassung: Links unten die Versionsnummer nach links außen rücken und den Text "Version:" davor schreiben.
 
