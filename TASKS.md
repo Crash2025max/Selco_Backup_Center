@@ -7,14 +7,16 @@ Diese Liste dokumentiert den Fortschritt des Projekts und geplante Erweiterungen
 - [x] Grundlegende Anforderungen geklärt
 - [x] Technologiestack festgelegt (Python, CustomTkinter)
 - [x] Repository-Struktur initialisiert
+- [x] Implementierung des Software-Scanners (`C:\BIESSE`)
+- [x] Basis-Backup-Logik (ZIP-Erstellung)
+- [x] GUI-Entwurf mit CustomTkinter
+- [x] Dynamische Versionenerkennung & Multi-Version-Support (Optiplanning, OSI)
 
 ## In Arbeit
-- [ ] Implementierung des Software-Scanners (`C:\BIESSE`)
-- [ ] Basis-Backup-Logik (ZIP-Erstellung)
+- [ ] Trennung von Automatik- und Manuell-Backup (UI & Config)
+- [ ] Programmspezifische Backup-Logik (Spezifische Dateien/Ordner je nach Programm statt nur Gesamtordner)
 
 ## Geplant
-- [ ] GUI-Entwurf mit CustomTkinter
-- [ ] Integration Windows Aufgabenplanung
 - [ ] Retention Policy (Löschen alter Backups)
 - [ ] Benachrichtigungssystem
 - [ ] EXE-Erstellung mit PyInstaller

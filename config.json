@@ -1,0 +1,71 @@
+{
+    "auto_backup": {
+        "path": "C:\\Backups\\Auto",
+        "programs": {
+            "OSI": {
+                "enabled": false
+            },
+            "Optiplanning_1.0": {
+                "enabled": false
+            },
+            "Optiplanning_4.01.0.13": {
+                "enabled": false
+            },
+            "Optiplanning_5.00.0.13": {
+                "enabled": false
+            },
+            "Optiplanning_5.01.0.33": {
+                "enabled": false
+            },
+            "Bopti": {
+                "enabled": false
+            },
+            "LEdit": {
+                "enabled": false
+            },
+            "LPrint": {
+                "enabled": true
+            }
+        },
+        "schedule": {
+            "type": "MINUTE",
+            "time": "12:15",
+            "minute_interval": 5
+        }
+    },
+    "manual_backup": {
+        "path": "C:\\Backups\\Manuell",
+        "programs": {
+            "OSI": {
+                "enabled": false
+            },
+            "Optiplanning_1.0": {
+                "enabled": false
+            },
+            "Optiplanning_4.01.0.13": {
+                "enabled": false
+            },
+            "Optiplanning_5.00.0.13": {
+                "enabled": false
+            },
+            "Optiplanning_5.01.0.33": {
+                "enabled": false
+            },
+            "Bopti": {
+                "enabled": false
+            },
+            "LEdit": {
+                "enabled": false
+            },
+            "LPrint": {
+                "enabled": false
+            }
+        }
+    },
+    "retention": {
+        "count": 3
+    },
+    "window": {
+        "geometry": "1466x1022+441+224"
+    }
+}

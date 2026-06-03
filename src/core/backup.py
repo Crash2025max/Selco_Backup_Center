@@ -4,6 +4,7 @@ import datetime
 import platform
 import logging
 import shutil
+from src.core.backup_rules import get_backup_rule
 
 class BackupManager:
     def __init__(self, target_base_path):
@@ -29,20 +30,109 @@ class BackupManager:
 
         target_file = os.path.join(self.target_base_path, filename)
 
+        txt_filename = filename.replace('.zip', '.txt')
+        txt_target_file = os.path.join(self.target_base_path, txt_filename)
+
+        backed_up_files = []
+
+        rule = get_backup_rule(program_name)
+        is_selective = rule["type"] == "selective"
+
         try:
+            if rule["type"] == "copy_latest_zip":
+                archive_dir = os.path.join(source_path, rule["folder"])
+                
+                # OSI specific: Check if ZipDir is overridden in Options.txt
+                options_path = os.path.join(source_path, "Options.txt")
+                if os.path.exists(options_path):
+                    try:
+                        with open(options_path, 'r', encoding='latin-1', errors='ignore') as f:
+                            for line in f:
+                                if line.startswith("ZipDir\t") or line.startswith("ZipDir="):
+                                    parts = line.split('\t') if '\t' in line else line.split('=')
+                                    if len(parts) > 1:
+                                        potential_path = parts[1].strip()
+                                        if os.path.isdir(potential_path):
+                                            archive_dir = potential_path
+                                        break
+                    except Exception as e:
+                        logging.warning(f"Konnte Options.txt nicht lesen: {e}")
+
+                if not os.path.exists(archive_dir):
+                    return False, f"Archiv-Ordner nicht gefunden: {archive_dir}"
+                    
+                zip_files = [os.path.join(archive_dir, f) for f in os.listdir(archive_dir) if f.lower().endswith('.zip')]
+                if not zip_files:
+                    return False, f"Keine ZIP-Datei in {archive_dir} gefunden."
+                    
+                newest_zip = max(zip_files, key=os.path.getmtime)
+                shutil.copy2(newest_zip, target_file)
+                
+                with open(txt_target_file, 'w', encoding='utf-8') as txtf:
+                    txtf.write(f"Backup-Protokoll für: {program_name}\n")
+                    txtf.write(f"Zeitpunkt: {timestamp}\n")
+                    txtf.write(f"Backup-Typ: {backup_type} (OSI Internal Copy)\n")
+                    txtf.write("="*50 + "\n\n")
+                    txtf.write(f"Kopiert von Original-Datei: {os.path.basename(newest_zip)}\n")
+                    txtf.write("Dieses Backup ist eine exakte Kopie des internen OSI-Archivs, um 100% Kompatibilität beim Wiederherstellen zu garantieren.\n")
+                    
+                logging.info(f"OSI Backup erfolgreich kopiert: {target_file}")
+                return True, target_file
+
             with zipfile.ZipFile(target_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 if os.path.isfile(source_path):
-                    zipf.write(source_path, os.path.basename(source_path))
+                    arcname = os.path.basename(source_path)
+                    zipf.write(source_path, arcname)
+                    backed_up_files.append(arcname)
                 else:
-                    for root, dirs, files in os.walk(source_path):
-                        # Avoid backing up the backup folder itself if it's inside source
-                        if self.target_base_path in os.path.abspath(root):
-                            continue
+                    if is_selective:
+                        # Nur spezifische Dateien sichern (unterstützt Wildcards wie *.MCH)
+                        import glob
+                        for f_pattern in rule.get("files", []):
+                            pattern_path = os.path.join(source_path, f_pattern)
+                            for f_path in glob.glob(pattern_path):
+                                if os.path.isfile(f_path):
+                                    f_name = os.path.relpath(f_path, source_path)
+                                    zipf.write(f_path, f_name)
+                                    backed_up_files.append(f_name)
+                        
+                        # Nur spezifische Ordner sichern
+                        for folder_name in rule.get("folders", []):
+                            # Ensure cross-platform path compatibility
+                            folder_rel = folder_name.replace("/", os.sep).replace("\\", os.sep)
+                            folder_path = os.path.join(source_path, folder_rel)
+                            
+                            if os.path.isdir(folder_path):
+                                for root, dirs, files in os.walk(folder_path):
+                                    if self.target_base_path in os.path.abspath(root):
+                                        continue
+                                    for file in files:
+                                        file_path = os.path.join(root, file)
+                                        arcname = os.path.relpath(file_path, source_path)
+                                        zipf.write(file_path, arcname)
+                                        backed_up_files.append(arcname)
+                    else:
+                        # Full Backup (Fallback)
+                        for root, dirs, files in os.walk(source_path):
+                            # Avoid backing up the backup folder itself if it's inside source
+                            if self.target_base_path in os.path.abspath(root):
+                                continue
+    
+                            for file in files:
+                                file_path = os.path.join(root, file)
+                                arcname = os.path.relpath(file_path, source_path)
+                                zipf.write(file_path, arcname)
+                                backed_up_files.append(arcname)
 
-                        for file in files:
-                            file_path = os.path.join(root, file)
-                            arcname = os.path.relpath(file_path, source_path)
-                            zipf.write(file_path, arcname)
+            with open(txt_target_file, 'w', encoding='utf-8') as txtf:
+                txtf.write(f"Backup-Protokoll für: {program_name}\n")
+                txtf.write(f"Zeitpunkt: {timestamp}\n")
+                txtf.write(f"Backup-Typ: {backup_type}\n")
+                txtf.write(f"Anzahl gesicherter Dateien: {len(backed_up_files)}\n")
+                txtf.write("="*50 + "\n\n")
+                txtf.write("Gesicherte Dateien:\n")
+                for item in backed_up_files:
+                    txtf.write(f"- {item}\n")
 
             logging.info(f"Backup erfolgreich erstellt: {target_file}")
             return True, target_file
@@ -83,6 +173,11 @@ class BackupManager:
                 try:
                     os.remove(path)
                     logging.info(f"Altes Backup gelöscht: {path}")
+                    # Also try to remove the corresponding .txt log file
+                    txt_path = path.replace('.zip', '.txt')
+                    if os.path.exists(txt_path):
+                        os.remove(txt_path)
+                        logging.info(f"Alte Backup-Logdatei gelöscht: {txt_path}")
                 except Exception as e:
                     logging.error(f"Fehler beim Löschen von {path}: {e}")
 
