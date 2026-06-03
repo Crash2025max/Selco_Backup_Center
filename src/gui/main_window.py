@@ -46,10 +46,7 @@ class App(ctk.CTk):
         self.btn_manual = ctk.CTkButton(self.sidebar_frame, text="Manuelles Backup (Service)", command=self.show_manual_frame)
         self.btn_manual.grid(row=2, column=0, padx=20, pady=10)
 
-        self.btn_scan = ctk.CTkButton(self.sidebar_frame, text="System manuell scannen", command=self.run_scan_thread)
-        self.btn_scan.grid(row=3, column=0, padx=20, pady=10)
-
-        self.sidebar_frame.grid_rowconfigure(4, weight=1)
+        self.sidebar_frame.grid_rowconfigure(3, weight=1)
 
         self.version_label = ctk.CTkLabel(self.sidebar_frame, text=f"v{self.app_version}", text_color="gray", font=ctk.CTkFont(size=11))
         self.version_label.grid(row=5, column=0, padx=20, pady=20, sticky="s")
@@ -173,9 +170,16 @@ class App(ctk.CTk):
         self.manual_checkbox_frame = ctk.CTkFrame(self.manual_frame, fg_color="transparent")
         self.manual_checkbox_frame.pack(fill="x")
 
-        # Start Button
-        ctk.CTkButton(self.manual_frame, text="▶ Backup Jetzt Starten", font=ctk.CTkFont(weight="bold"), 
-                      height=40, command=self.run_manual_backup_thread).pack(pady=40, anchor="w")
+        # Start Button & Progress
+        start_frame = ctk.CTkFrame(self.manual_frame, fg_color="transparent")
+        start_frame.pack(pady=40, anchor="w", fill="x")
+        
+        self.btn_manual_backup = ctk.CTkButton(start_frame, text="▶ Backup Jetzt Starten", font=ctk.CTkFont(weight="bold"), 
+                      height=40, command=self.run_manual_backup_thread, fg_color="green", hover_color="darkgreen")
+        self.btn_manual_backup.pack(side="left")
+        
+        self.backup_progress = ctk.CTkProgressBar(start_frame, mode="indeterminate", width=200)
+        self.backup_progress.set(0)
 
     def update_schedule_inputs(self):
         mode = self.schedule_mode_var.get()
@@ -204,7 +208,6 @@ class App(ctk.CTk):
         self.log_textbox.configure(state="disabled")
 
     def run_scan_thread(self):
-        self.log("Starte System-Scan im Hintergrund...")
         threading.Thread(target=self.run_scan, daemon=True).start()
 
     def run_scan(self):
@@ -265,8 +268,6 @@ class App(ctk.CTk):
                 self.manual_program_vars[prog_name] = var_manual
                 self.manual_time_labels[prog_name] = t_lbl_manual
                 row_idx += 1
-                
-                self.log(f"Gefunden: {display_name} (v{info['version']})")
                 
         self.refresh_last_backup_times()
 
@@ -359,6 +360,10 @@ class App(ctk.CTk):
                 self.log("Manuelles Backup abgebrochen, da das OSI-Archiv noch nicht aktualisiert wurde.", level="INFO")
                 return
 
+        self.btn_manual_backup.configure(state="disabled")
+        self.backup_progress.pack(side="left", padx=20)
+        self.backup_progress.start()
+
         threading.Thread(target=self.run_manual_backup, daemon=True).start()
 
     def run_manual_backup(self):
@@ -380,8 +385,14 @@ class App(ctk.CTk):
         
         self.log("Manuelles Backup abgeschlossen!")
         # Use after to show messagebox from main thread
-        self.after(0, self.refresh_last_backup_times)
-        self.after(0, lambda: messagebox.showinfo("Backup", "Manuelles Backup abgeschlossen!"))
+        self.after(0, self._finish_manual_backup)
+
+    def _finish_manual_backup(self):
+        self.backup_progress.stop()
+        self.backup_progress.pack_forget()
+        self.btn_manual_backup.configure(state="normal")
+        self.refresh_last_backup_times()
+        messagebox.showinfo("Backup", "Manuelles Backup abgeschlossen!")
 
     def save_current_config(self):
         """Saves current UI state to config without closing the app."""

@@ -24,7 +24,7 @@
                 "enabled": false
             },
             "LPrint": {
-                "enabled": true
+                "enabled": false
             }
         },
         "schedule": {
@@ -46,7 +46,7 @@
                 "enabled": false
             },
             "Optiplanning_5.00.0.13": {
-                "enabled": false
+                "enabled": true
             },
             "Optiplanning_5.01.0.33": {
                 "enabled": false
@@ -66,6 +66,6 @@
         "count": 3
     },
     "window": {
-        "geometry": "1466x1022+441+224"
+        "geometry": "1466x1022+296+153"
     }
 }

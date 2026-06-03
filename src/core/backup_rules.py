@@ -31,6 +31,37 @@ BACKUP_RULES = {
     "OSI": {
         "type": "copy_latest_zip",
         "folder": "ARCHIVE"
+    },
+    "Bopti": {
+        "type": "selective",
+        "folders": [
+            "Settings",
+            "DatabaseFiles",
+            "SqlQueries"
+        ],
+        "files": [
+            "DataBase.sdf"
+        ]
+    },
+    "Optiplanning": {
+        "type": "selective",
+        "folders": [
+            "Cfg",
+            "StkCfg",
+            "stat",
+            "Ddm"
+        ],
+        "registry_paths": [
+            {
+                "hive": "HKEY_CURRENT_USER",
+                "key": r"Software\Selco S.p.A.\OptiPlanning\1.0",
+                "values": [
+                    "CpoDir", "JobDir", "LisDir", "MatDir", "OpfDir", "SawDir", 
+                    "TgtDir", "TgtDir2", "TgtDir3", "SrcDir", "CabDir", 
+                    "BackupDir", "XmlDir", "XmlMatDir", "OsiParDir", "ImgDir", "DbOsiDir"
+                ]
+            }
+        ]
     }
 }
 

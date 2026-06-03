@@ -4,6 +4,7 @@ import datetime
 import platform
 import logging
 import shutil
+import winreg
 from src.core.backup_rules import get_backup_rule
 
 class BackupManager:
@@ -103,14 +104,62 @@ class BackupManager:
                             folder_path = os.path.join(source_path, folder_rel)
                             
                             if os.path.isdir(folder_path):
+                                folder_base_name = os.path.basename(folder_path)
                                 for root, dirs, files in os.walk(folder_path):
                                     if self.target_base_path in os.path.abspath(root):
                                         continue
                                     for file in files:
                                         file_path = os.path.join(root, file)
-                                        arcname = os.path.relpath(file_path, source_path)
-                                        zipf.write(file_path, arcname)
-                                        backed_up_files.append(arcname)
+                                        rel_path = os.path.relpath(file_path, folder_path)
+                                        arcname = os.path.join(folder_base_name, rel_path)
+                                        if arcname not in backed_up_files:
+                                            zipf.write(file_path, arcname)
+                                            backed_up_files.append(arcname)
+                                            
+                        # Zusätzliche absolute Ordner sichern (z.B. OptiPlanning_DATEN)
+                        for abs_folder in rule.get("absolute_folders", []):
+                            abs_folder_path = os.path.normpath(abs_folder)
+                            if os.path.isdir(abs_folder_path):
+                                folder_base_name = os.path.basename(abs_folder_path)
+                                for root, dirs, files in os.walk(abs_folder_path):
+                                    if self.target_base_path in os.path.abspath(root):
+                                        continue
+                                    for file in files:
+                                        file_path = os.path.join(root, file)
+                                        rel_path = os.path.relpath(file_path, abs_folder_path)
+                                        arcname = os.path.join(folder_base_name, rel_path)
+                                        if arcname not in backed_up_files:
+                                            zipf.write(file_path, arcname)
+                                            backed_up_files.append(arcname)
+
+                        # Zusätzliche Ordner aus der Windows Registry auslesen (z.B. Optiplanning)
+                        for reg_info in rule.get("registry_paths", []):
+                            hive_name = reg_info.get("hive", "HKEY_CURRENT_USER")
+                            hive = winreg.HKEY_CURRENT_USER if hive_name == "HKEY_CURRENT_USER" else winreg.HKEY_LOCAL_MACHINE
+                            key_path = reg_info.get("key", "")
+                            try:
+                                with winreg.OpenKey(hive, key_path) as key:
+                                    for val_name in reg_info.get("values", []):
+                                        try:
+                                            val_data, val_type = winreg.QueryValueEx(key, val_name)
+                                            if val_data and isinstance(val_data, str):
+                                                abs_folder_path = os.path.normpath(val_data)
+                                                if os.path.isdir(abs_folder_path):
+                                                    for root, dirs, files in os.walk(abs_folder_path):
+                                                        if self.target_base_path in os.path.abspath(root):
+                                                            continue
+                                                        for file in files:
+                                                            file_path = os.path.join(root, file)
+                                                            rel_path = os.path.relpath(file_path, abs_folder_path)
+                                                            # Store under RegistryData_[ValueName] to prevent overwrites
+                                                            arcname = os.path.join(f"RegistryData_{val_name}", rel_path)
+                                                            if arcname not in backed_up_files:
+                                                                zipf.write(file_path, arcname)
+                                                                backed_up_files.append(arcname)
+                                        except FileNotFoundError:
+                                            continue
+                            except FileNotFoundError:
+                                logging.warning(f"Registry-Schlüssel nicht gefunden: {key_path}")
                     else:
                         # Full Backup (Fallback)
                         for root, dirs, files in os.walk(source_path):
